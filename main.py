@@ -1,107 +1,101 @@
-from tkinter import *
-import math
-# ---------------------------- CONSTANTS ------------------------------- #
-PINK = "#e2979c"
-RED = "#e7305b"
-GREEN = "#9bdeac"
-YELLOW = "#f7f5dd"
-FONT_NAME = "Courier"
-WORK_MIN = 25
-SHORT_BREAK_MIN = 5
-LONG_BREAK_MIN = 20
-reps = 0
-timer = None
 
-# ---------------------------- TIMER RESET ------------------------------- # 
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.common.by import By
+import time
+
+ACCOUNT_EMAIL = "mahendrasoni5043@gmail.com"
+ACCOUNT_PASSWORD = "mahendrasoni@"
+PHONE = "7777755555"
 
 
-def reset_timer():
-    window.after_cancel(timer)
-    canvas.itemconfig(timer_text, text="00:00")
-    title_label.config(text="Timer")
-    check_marks.config(text="")
-    global reps
-    reps = 0
+def abort_application():
+    # Click Close Button
+    close_button = driver.find_element(by=By.CLASS_NAME, value="artdeco-modal__dismiss")
+    close_button.click()
 
-# ---------------------------- TIMER MECHANISM ------------------------------- # 
-
-
-def start_timer():
-    global reps
-    reps += 1
-
-    work_sec = WORK_MIN*60
-    short_break_sec = SHORT_BREAK_MIN *60
-    long_break_sec = LONG_BREAK_MIN *60
-
-    # if its the 1 3 5 7 rep
-
-    if reps % 8 == 0:
-        count_down(long_break_sec)
-        title_label.config(text="break", fg=RED)
-    elif reps % 2 == 0:
-        count_down(short_break_sec)
-        title_label.config(text="break", fg=PINK)
-    else:
-        count_down(work_sec)
-        title_label.config(text="work", fg=GREEN)
+    time.sleep(2)
+    # Click Discard Button
+    discard_button = driver.find_elements(by=By.CLASS_NAME, value="artdeco-modal__confirm-dialog-btn")[1]
+    discard_button.click()
 
 
-# ---------------------------- COUNTDOWN MECHANISM ------------------------------- # 
-def count_down(count):
+# Optional - Keep the browser open if the script crashes.
+chrome_options = webdriver.ChromeOptions()
+chrome_options.add_experimental_option("detach", True)
 
-    count_min = math.floor(count/60)
-    count_sec = count % 60
-    if count_sec < 10:
-        count_sec = f"0{count_sec}"
+driver = webdriver.Chrome(options=chrome_options)
 
-    canvas.itemconfig(timer_text, text=f"{count_min}:{count_sec}")
-    if count > 0:
-        global timer
-        timer = window.after(1000, count_down, count-1)
-    else:
-        start_timer()
-        mark = ""
-        work_sessions = math.floor(reps/2)
-        for _ in range(work_sessions):
-            mark+= "✔"
-        check_marks.config(text="mark")
+driver.get("https://www.linkedin.com/jobs/search/?"
+           "currentJobId=3907537679&f_AL=true&keywords=python%20developer&location=london&origin="
+           "JOB_SEARCH_PAGE_JOB_FILTER&"
+           "originalSubdomain=uk")
 
-# ---------------------------- UI SETUP ------------------------------- #
+# Click Reject Cookies Button
+# time.sleep(2)
+# reject_button = driver.find_element(by=By.CSS_SELECTOR, value='button[action-type="DENY"]')
+# reject_button.click()
 
-window = Tk()
-window.title("pomodoro")
-window.config(padx=100, pady=50, bg=YELLOW)
+# Click Sign in Button
+time.sleep(2)
+sign_in_button = driver.find_element(by=By.LINK_TEXT, value="Sign in")
+sign_in_button.click()
 
+# Sign in
+time.sleep(5)
+email_field = driver.find_element(by=By.ID, value="username")
+email_field.send_keys(ACCOUNT_EMAIL)
+password_field = driver.find_element(by=By.ID, value="password")
+password_field.send_keys(ACCOUNT_PASSWORD)
+password_field.send_keys(Keys.ENTER)
 
-title_label = Label(text="Timer", fg=GREEN, bg=YELLOW, font=(FONT_NAME, 50))
-title_label.grid(column=1, row=0)
+# CAPTCHA - Solve Puzzle Manually
+# input("Press Enter when you have solved the Captcha")
 
+# Get Listings
+time.sleep(5)
+all_listings = driver.find_elements(by=By.CSS_SELECTOR, value=".job-card-container--clickable")
 
-canvas = Canvas(width=200, height=224, bg=YELLOW, highlightthickness=0)
-tomato_img = PhotoImage(file="tomato.png")
-canvas.create_image(100, 112, image=tomato_img)
-timer_text = canvas.create_text(100, 130, text="00:00", fill="white", font=(FONT_NAME, 35, "bold"))
-canvas.grid(column=1,row=1)
+# Apply for Jobs
+for listing in all_listings:
+    print("Opening Listing")
+    listing.click()
+    time.sleep(2)
+    try:
+        # Click Apply Button
+        apply_button = driver.find_element(by=By.CSS_SELECTOR, value=".jobs-s-apply button")
+        apply_button.click()
 
-start_button = Button(text="start", command=start_timer)
-start_button.grid(column=0, row=2)
+        # Insert Phone Number
+        # Find an <input> element where the id contains phoneNumber
+        time.sleep(5)
+        phone = driver.find_element(by=By.CSS_SELECTOR, value="input[id*=phoneNumber]")
+        if phone.text == "":
+            phone.send_keys(PHONE)
 
-reset_button = Button(text="reset", command=reset_timer)
-reset_button.grid(column=2, row=2)
+        # Check the Submit Button
+        submit_button = driver.find_element(by=By.CSS_SELECTOR, value="footer button")
+        if submit_button.get_attribute("data-control-name") == "continue_unify":
+            abort_application()
+            print("Complex application, skipped.")
+            continue
+        else:
+            # Click Submit Button
+            print("Submitting job application")
+            submit_button.click()
 
-check_marks = Label(fg=GREEN, bg=YELLOW)
-check_marks.grid(column=1, row=3)
+        time.sleep(2)
+        # Click Close Button
+        save_button = driver.find_element(by=By.XPATH, value="/html/body/div[3]/div[2]/div/div[3]/button[2]/span")
+        save_button.click()
+        close_button = driver.find_element(by=By.CLASS_NAME, value="artdeco-modal__dismiss")
+        close_button.click()
 
-window.mainloop()
+    except NoSuchElementException:
+        abort_application()
+        print("No application button, skipped.")
+        continue
 
-
-
-
-
-
-
-
-
-
-
+time.sleep(5)
+driver.quit()
